@@ -55,7 +55,10 @@ class Artist(db.Model):
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
+    genres = db.Column(db.ARRAY(db.String()))
+
+
+
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     looking_venues = db.Column(db.Boolean, default=False, nullable=False)
@@ -263,12 +266,7 @@ def create_venue_submission():
     db.session.rollback()
   finally:
     db.session.close()
-
-
-
-
   # on successful db insert, flash success
-
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
@@ -328,10 +326,36 @@ def search_artists():
 
   return render_template('pages/search_artists.html', results=response, search_term=search_term)
 
+
+
+
+
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
   # shows the artist page with the given artist_id
   # TODO: replace with real artist data from the artist table, using artist_id
+
+  artists = Artist.query.filter_by(id=artist_id).all()
+
+
+
+
+
+
+  artist_info = artists[0]
+
+
+
+  string_genres = "".join(artist_info.genres)
+  string_genres = string_genres[1:-1]
+
+  artist_info.genres = string_genres.split(",")
+
+
+
+
+
+
   data1={
     "id": 4,
     "name": "Guns N Petals",
@@ -403,8 +427,8 @@ def show_artist(artist_id):
     "past_shows_count": 0,
     "upcoming_shows_count": 3,
   }
-  data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
-  return render_template('pages/show_artist.html', artist=data)
+  #data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
+  return render_template('pages/show_artist.html', artist=artist_info)
 
 #  Update
 #  ----------------------------------------------------------------
@@ -470,6 +494,7 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
+
   # called upon submitting the new artist listing form
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
@@ -482,6 +507,8 @@ def create_artist_submission():
   facebook_link = request.form.get('facebook_link', '')
   seeking_venue = request.form.get('seeking_venue', '')
   seeking_description = request.form.get('seeking_description', '')
+
+  print(genres)
 
   if seeking_venue == "y":
     seeking_venue = True
