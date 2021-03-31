@@ -61,7 +61,7 @@ class Artist(db.Model):
 
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
-    looking_venues = db.Column(db.Boolean, default=False, nullable=False)
+    seeking_venue = db.Column(db.Boolean, default=False, nullable=False)
     seeking_description = db.Column(db.String(120))
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
@@ -281,6 +281,11 @@ def delete_venue(venue_id):
   # clicking that button delete it from the db then redirect the user to the homepage
   return None
 
+
+
+
+
+
 #  Artists
 #  ----------------------------------------------------------------
 @app.route('/artists')
@@ -344,12 +349,14 @@ def show_artist(artist_id):
 
   artist_info = artists[0]
 
-
+  print(artist_info.genres)
 
   string_genres = "".join(artist_info.genres)
   string_genres = string_genres[1:-1]
 
   artist_info.genres = string_genres.split(",")
+
+  #print(string_genres.split(","))
 
 
 
@@ -494,7 +501,7 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
-
+  form = ArtistForm()
   # called upon submitting the new artist listing form
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
@@ -502,13 +509,14 @@ def create_artist_submission():
   city = request.form.get('city', '')
   state = request.form.get('state', '')
   phone = request.form.get('phone', '')
-  genres = request.form.get('genres', '')
+
+  genres = request.form.getlist('genres')
   image_link = request.form.get('image_link', '')
   facebook_link = request.form.get('facebook_link', '')
   seeking_venue = request.form.get('seeking_venue', '')
   seeking_description = request.form.get('seeking_description', '')
 
-  print(genres)
+
 
   if seeking_venue == "y":
     seeking_venue = True
@@ -519,7 +527,7 @@ def create_artist_submission():
   artist = Artist(name=name, city=city, state=state,
                   phone=phone, genres=genres, image_link=image_link,
                   facebook_link=facebook_link,
-                  seeking_description=seeking_description, looking_venues=seeking_venue)
+                  seeking_description=seeking_description, seeking_venue=seeking_venue)
   db.session.add(artist)
   db.session.commit()
   db.session.close()
