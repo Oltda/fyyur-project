@@ -30,11 +30,6 @@ migrate = Migrate(app,db)
 # Models.
 #----------------------------------------------------------------------------#
 
-shows = db.Table('shows',
-
-      db.Column('venue_id', db.Integer, db.ForeignKey('Venue.id'), primary_key=True),
-      db.Column('artist_id', db.Integer, db.ForeignKey('Artist.id'), primary_key=True),
-      db.Column('start_time', db.DateTime, nullable=False, default=datetime.utcnow))
 
 
 
@@ -53,8 +48,12 @@ class Venue(db.Model):
     facebook_link = db.Column(db.String(120))
     seeking_talent = db.Column(db.Boolean, default=False, nullable=False)
     seeking_description = db.Column(db.String(120))
-    artists = db.relationship('Artist', secondary=shows,
-                              backref=db.backref('venues', lazy=True))
+    #artists = db.relationship('Artist', secondary=shows, backref=db.backref('venues', lazy=True))
+    shows = db.relationship('Show', backref='venue', lazy=True)
+
+    def __repr__(self):
+        return f'<Venue {self.id} {self.name}>'
+
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -75,6 +74,21 @@ class Artist(db.Model):
     facebook_link = db.Column(db.String(120))
     seeking_venue = db.Column(db.Boolean, default=False, nullable=False)
     seeking_description = db.Column(db.String(120))
+    shows = db.relationship('Show', backref='artist', lazy=True)
+
+    def __repr__(self):
+        return f'<Artist {self.id} {self.name}>'
+
+class Show(db.Model):
+    __tablename__ = 'shows'
+
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
+    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+
+
+
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -611,12 +625,10 @@ def create_show_submission():
 
 
 
-  artist1 = Artist.query.get(artist_id)
-  venue1 = Venue.query.get(venue_id)
+  show = Show(artist_id=artist_id, venue_id=venue_id, start_time=start_time)
 
+  db.session.add(show)
 
-
-  artist1.venues.append(venue1)
   db.session.commit()
   db.session.close()
 
