@@ -43,7 +43,7 @@ class Venue(db.Model):
     state = db.Column(db.String(120))
     address = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
+    genres = db.Column(db.ARRAY(db.String()))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     seeking_talent = db.Column(db.Boolean, default=False, nullable=False)
@@ -122,29 +122,56 @@ def index():
 
 @app.route('/venues')
 def venues():
+  #areas  returns this --> [('Prague', 'AZ'), ('Jihlava', 'DE')]
+
+  areas = db.session.query(Venue.city, Venue.state).distinct(Venue.city, Venue.state).order_by('state').all()
+
+  prvni_filtr = Venue.query.filter_by(state=areas[0].state)
+  #print(prvni_filtr)
+
+  druhy_filtr = prvni_filtr.filter_by(city=areas[0].city).all()
+  print(druhy_filtr)
+
+  data = []
+  for area in areas:
+    venues = Venue.query.filter_by(state=area.state).filter_by(city=area.city).order_by('name').all()
+    venue_data = []
+    data.append({
+      'city': area.city,
+      'state': area.state,
+      'venues': venue_data
+    })
+    for venue in venues:
+      shows = Show.query.filter_by(venue_id=venue.id).order_by('id').all()
+      venue_data.append({
+        'id': venue.id,
+        'name': venue.name,
+        'num_upcoming_shows': len(shows)
+      })
+
   # TODO: replace with real venues data.
   #       num_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
+  # data=[{
+  #   "city": "San Francisco",
+  #   "state": "CA",
+  #   "venues": [{
+  #     "id": 1,
+  #     "name": "The Musical Hop",
+  #     "num_upcoming_shows": 0,
+  #   }, {
+  #     "id": 3,
+  #     "name": "Park Square Live Music & Coffee",
+  #     "num_upcoming_shows": 1,
+  #   }]
+  # }, {
+  #   "city": "New York",
+  #   "state": "NY",
+  #   "venues": [{
+  #     "id": 2,
+  #     "name": "The Dueling Pianos Bar",
+  #     "num_upcoming_shows": 0,
+  #   }]
+  # }]
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
@@ -152,18 +179,56 @@ def search_venues():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
+
+
+  search_term = request.form.get('search_term', '')
+
+
+  venue = db.session.query(Venue).order_by(Venue.name)
+
   response={
-    "count": 1,
-    "data": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
+     "count": 1,
+     "data": []
   }
+
+  for i in venue:
+    if search_term.lower() in i.name.lower():
+      ven = {'name': i.name, 'id': i.id}
+      response['data'].append((ven))
+      #print(i.name)
+  response['count'] = len(response['data'])
+
+
+
+  # response={
+  #   "count": 1,
+  #   "data": [{
+  #     "id": 2,
+  #     "name": "The Dueling Pianos Bar",
+  #     "num_upcoming_shows": 0,
+  #   }]
+  # }
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
+
+
+
+  venues = Venue.query.filter_by(id=venue_id).all()
+
+
+  venue_info = venues[0]
+  print(venue_info.genres)
+
+  string_genres = "".join(venue_info.genres)
+  string_genres = string_genres[1:-1]
+
+  venue_info.genres = string_genres.split(",")
+
+
+
+
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
   data1={
@@ -243,8 +308,8 @@ def show_venue(venue_id):
     "past_shows_count": 1,
     "upcoming_shows_count": 1,
   }
-  data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
-  return render_template('pages/show_venue.html', venue=data)
+  #data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
+  return render_template('pages/show_venue.html', venue=venue_info)
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -263,6 +328,7 @@ def create_venue_submission():
     name = request.form.get('name', '')
     city = request.form.get('city', '')
     state = request.form.get('state', '')
+    genres = request.form.getlist('genres')
     address = request.form.get('address', '')
     phone = request.form.get('phone', '')
     image_link = request.form.get('image_link', '')
@@ -278,7 +344,7 @@ def create_venue_submission():
 
 
     venue = Venue(name=name, city=city, state=state, address=address,
-                    phone=phone, image_link=image_link,
+                    phone=phone, image_link=image_link, genres=genres,
                     facebook_link=facebook_link, seeking_talent=seeking_talent,
                     seeking_description=seeking_description)
 
@@ -300,6 +366,9 @@ def create_venue_submission():
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
+
+
+
   # TODO: Complete this endpoint for taking a venue_id, and using
   # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
 
@@ -369,20 +438,14 @@ def show_artist(artist_id):
   artists = Artist.query.filter_by(id=artist_id).all()
 
 
-
-
-
-
   artist_info = artists[0]
-
-  print(artist_info.genres)
 
   string_genres = "".join(artist_info.genres)
   string_genres = string_genres[1:-1]
 
   artist_info.genres = string_genres.split(",")
 
-  #print(string_genres.split(","))
+
 
 
 
