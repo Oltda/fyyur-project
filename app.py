@@ -531,27 +531,92 @@ def show_artist(artist_id):
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
   form = ArtistForm()
-  artist={
-    "id": 4,
-    "name": "Guns N Petals",
-    "genres": ["Rock n Roll"],
-    "city": "San Francisco",
-    "state": "CA",
-    "phone": "326-123-5000",
-    "website": "https://www.gunsnpetalsband.com",
-    "facebook_link": "https://www.facebook.com/GunsNPetals",
-    "seeking_venue": True,
-    "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
-    "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80"
-  }
+  artist_to_edit = Artist.query.filter_by(id=artist_id).first()
+
+  form.name.data = artist_to_edit.name
+  form.city.data = artist_to_edit.city
+  form.state.data = artist_to_edit.state
+  form.phone.data = artist_to_edit.phone
+  form.image_link.data = artist_to_edit.image_link
+  form.facebook_link.data = artist_to_edit.facebook_link
+
+  form.seeking_description.data = artist_to_edit.seeking_description
+
+  form.seeking_venue.data = artist_to_edit.seeking_venue
+
+
+
+
+
+  string_genres = "".join(artist_to_edit.genres)
+  string_genres = string_genres[1:-1]
+
+  artist_to_edit.genres = string_genres.split(",")
+
+
+  # for genre in artist_to_edit.genres:
+  #    form.genres.data = genre
+
+  form.genres.data = artist_to_edit.genres
+
+
+
+
+
+
+  # artist={
+  #   "id": 4,
+  #   "name": "Guns N Petals",
+  #   "genres": ["Rock n Roll"],
+  #   "city": "San Francisco",
+  #   "state": "CA",
+  #   "phone": "326-123-5000",
+  #   "website": "https://www.gunsnpetalsband.com",
+  #   "facebook_link": "https://www.facebook.com/GunsNPetals",
+  #   "seeking_venue": True,
+  #   "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
+  #   "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80"
+  # }
   # TODO: populate form with fields from artist with ID <artist_id>
-  return render_template('forms/edit_artist.html', form=form, artist=artist)
+  return render_template('forms/edit_artist.html', form=form, artist=artist_to_edit)
 
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
   # TODO: take values from the form submitted, and update existing
   # artist record with ID <artist_id> using the new attributes
+  artist_to_edit = Artist.query.filter_by(id=artist_id).first()
 
+  name = request.form.get('name', '')
+
+  city = request.form.get('city', '')
+  state = request.form.get('state', '')
+  phone = request.form.get('phone', '')
+
+  genres = request.form.getlist('genres')
+  image_link = request.form.get('image_link', '')
+  facebook_link = request.form.get('facebook_link', '')
+  seeking_venue = request.form.get('seeking_venue', '')
+  seeking_description = request.form.get('seeking_description', '')
+
+
+  if seeking_venue == "y":
+      artist_to_edit.seeking_venue = True
+  else:
+      artist_to_edit.seeking_venue = False
+
+
+  artist_to_edit.name = name
+  artist_to_edit.city = city
+  artist_to_edit.state = state
+  artist_to_edit.phone = phone
+  artist_to_edit.genres = genres
+  artist_to_edit.name = image_link
+  artist_to_edit.city = facebook_link
+  artist_to_edit.phone = seeking_description
+
+
+  db.session.commit()
+  db.session.close()
   return redirect(url_for('show_artist', artist_id=artist_id))
 
 @app.route('/venues/<int:venue_id>/edit', methods=['GET'])
