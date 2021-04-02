@@ -560,27 +560,79 @@ def edit_artist_submission(artist_id):
 @app.route('/venues/<int:venue_id>/edit', methods=['GET'])
 def edit_venue(venue_id):
   form = VenueForm()
-  venue={
-    "id": 1,
-    "name": "The Musical Hop",
-    "genres": ["Jazz", "Reggae", "Swing", "Classical", "Folk"],
-    "address": "1015 Folsom Street",
-    "city": "San Francisco",
-    "state": "CA",
-    "phone": "123-123-1234",
-    "website": "https://www.themusicalhop.com",
-    "facebook_link": "https://www.facebook.com/TheMusicalHop",
-    "seeking_talent": True,
-    "seeking_description": "We are on the lookout for a local artist to play every two weeks. Please call us.",
-    "image_link": "https://images.unsplash.com/photo-1543900694-133f37abaaa5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60"
-  }
+
+  venue_to_edit = Venue.query.get(venue_id)
+
+  form.name.data = venue_to_edit.name
+  form.city.data = venue_to_edit.city
+  form.state.data = venue_to_edit.state
+  form.phone.data = venue_to_edit.phone
+  form.address.data = venue_to_edit.address
+  form.image_link.data = venue_to_edit.image_link
+  form.facebook_link.data = venue_to_edit.facebook_link
+
+  form.seeking_description.data = venue_to_edit.seeking_description
+
+  form.seeking_talent.data = venue_to_edit.seeking_talent
+
+
+
+
+
+  string_genres = "".join(venue_to_edit.genres)
+  string_genres = string_genres[1:-1]
+
+  venue_to_edit.genres = string_genres.split(",")
+
+
+  # for genre in artist_to_edit.genres:
+  #    form.genres.data = genre
+
+  form.genres.data = venue_to_edit.genres
+
+
   # TODO: populate form with values from venue with ID <venue_id>
-  return render_template('forms/edit_venue.html', form=form, venue=venue)
+  return render_template('forms/edit_venue.html', form=form, venue=venue_to_edit)
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
   # TODO: take values from the form submitted, and update existing
   # venue record with ID <venue_id> using the new attributes
+
+  venue_to_edit = Venue.query.get(venue_id)
+
+  name = request.form.get('name', '')
+  print(name)
+  city = request.form.get('city', '')
+  state = request.form.get('state', '')
+  phone = request.form.get('phone', '')
+
+  address = request.form.get('address', '')
+  genres = request.form.getlist('genres')
+  image_link = request.form.get('image_link', '')
+  facebook_link = request.form.get('facebook_link', '')
+  seeking_talent = request.form.get('seeking_talent', '')
+  seeking_description = request.form.get('seeking_description', '')
+
+  if seeking_talent == "y":
+    venue_to_edit.seeking_talent = True
+  else:
+    venue_to_edit.seeking_talent = False
+
+  venue_to_edit.name = name
+  venue_to_edit.city = city
+  venue_to_edit.state = state
+  venue_to_edit.phone = phone
+  venue_to_edit.genres = genres
+  venue_to_edit.image_link = image_link
+  venue_to_edit.city = facebook_link
+  venue_to_edit.phone = seeking_description
+  venue_to_edit.address = address
+
+  db.session.commit()
+  db.session.close()
+
+
   return redirect(url_for('show_venue', venue_id=venue_id))
 
 #  Create Artist
