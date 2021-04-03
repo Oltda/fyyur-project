@@ -13,6 +13,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from flask_migrate import Migrate
 from forms import *
+import datetime
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -343,6 +344,7 @@ def search_artists():
   #     "num_upcoming_shows": 0,
   #   }]
   # }
+  #{'count': 1, 'data': [{'name': 'U2', 'id': 39}]}
 
   search_term = request.form.get('search_term', '')
 
@@ -373,22 +375,103 @@ def show_artist(artist_id):
   # shows the artist page with the given artist_id
   # TODO: replace with real artist data from the artist table, using artist_id
 
-  artists = Artist.query.filter_by(id=artist_id).all()
+  artist = Artist.query.filter_by(id=artist_id).first()
 
 
-  artist_info = artists[0]
 
-  string_genres = "".join(artist_info.genres)
+
+  string_genres = "".join(artist.genres)
   string_genres = string_genres[1:-1]
 
-  artist_info.genres = string_genres.split(",")
+  artist.genres = string_genres.split(",")
 
 
 
 
 
 
+  all_the_shows = Show.query.filter_by(artist_id=artist_id).all()
 
+  past_shows = []
+  upcoming_shows = []
+
+  for gig in all_the_shows:
+
+    # print("venue id", gig.venue_id)
+    # print("venue image link", Venue.query.get(gig.venue_id).image_link)
+    # print("venue name", Venue.query.get(gig.venue_id).name)
+
+
+    show_date = gig.start_time
+    today = datetime.datetime.now()
+
+    if show_date.date() < today.date():
+      info_past = {'venue_id': gig.venue_id, 'venue_name': Venue.query.get(gig.venue_id).name,
+                   'venue_image_link': Venue.query.get(gig.venue_id).image_link,
+                   'start_time': str(show_date)}
+      past_shows.append(info_past)
+      #print("show is in the past")
+      #past_shows['venue_id'] = gig.venue_id
+      # past_shows['venue_name'] = Venue.query.get(gig.venue_id).name
+      # past_shows['venue_image_link'] = Venue.query.get(gig.venue_id).image_link
+      # past_shows['start_time'] = str(show_date)
+    elif show_date.date() > today.date():
+      #print("the show is in the future")
+      # upcoming_shows['venue_id'] = gig.venue_id
+      # upcoming_shows['venue_name'] = Venue.query.get(gig.venue_id).name
+      # upcoming_shows['venue_image_link'] = Venue.query.get(gig.venue_id).image_link
+      # upcoming_shows['start_time'] = str(show_date)
+      info_future = {'venue_id': gig.venue_id, 'venue_name': Venue.query.get(gig.venue_id).name,
+                   'venue_image_link': Venue.query.get(gig.venue_id).image_link,
+                   'start_time': str(show_date)}
+      upcoming_shows.append(info_future)
+
+    elif show_date.date() == today.date():
+      print("the show is today")
+
+
+
+
+
+  artist_data = {
+    "id": artist.id,
+    "name": artist.name,
+    "genres": artist.genres,
+    "city": artist.city,
+    "state": artist.state,
+    "phone": artist.phone,
+    "website": "DODELAT column NENI V DATABAZI migrace",
+    "facebook_link": artist.facebook_link,
+    "seeking_venue": artist.seeking_venue,
+    "seeking_description": artist.seeking_description,
+    "image_link": artist.image_link,
+    "past_shows": past_shows,
+    "upcoming_shows": upcoming_shows,
+    "past_shows_count": len(past_shows),
+    "upcoming_shows_count": len(upcoming_shows),
+  }
+
+  print(artist_data)
+
+  all_the_shows = Show.query.filter_by(artist_id=artist_id).all()
+
+  # for gig in all_the_shows:
+  #
+  #   print("venue id", gig.venue_id)
+  #   print("venue image link", Venue.query.get(gig.venue_id).image_link)
+  #   print("venue name", Venue.query.get(gig.venue_id).name)
+  #
+  #   print("start time", gig.start_time)
+  #   show_date = gig.start_time
+  #
+  #   x = datetime.datetime.now()
+  #
+  #   if show_date.date() < x.date():
+  #     print("show is in the past")
+  #   elif show_date.date() > x.date():
+  #     print("the show is in the future")
+  #   elif show_date.date() == x.date():
+  #     print("the show is today")
 
   data1={
     "id": 4,
@@ -432,6 +515,37 @@ def show_artist(artist_id):
     "past_shows_count": 1,
     "upcoming_shows_count": 0,
   }
+
+  dataa = {'id': 39,
+           'name': 'U2',
+           'genres': ['Blues', 'Country', 'Electronic'],
+           'city': 'Idaho',
+           'state': 'AZ',
+           'phone': '12345',
+           'website': 'DODELAT column NENI V DATABAZI migrace',
+           'facebook_link': 'dalsi fb',
+           'seeking_venue': True,
+           'seeking_description': 'Ireland music',
+           'image_link': 'dasli image',
+           'past_shows': [
+                          {'venue_id': 38,
+                           'venue_name': 'Accustic bar',
+                           'venue_image_link': 'acust image',
+                            'start_time': '2021-04-02 13:30:04'},
+
+                          {'venue_id': 35, ''
+                            'venue_name': 'novej ',
+                            'venue_image_link': 'novej img',
+                            'start_time': '2021-04-01 14:10:13'}],
+
+           'upcoming_shows': [
+                              {'venue_id': 37,
+                               'venue_name': 'German bar',
+                               'venue_image_link': 'germ img', 'start_time': '2021-04-04 11:50:20'}],
+           'past_shows_count': 1, 'upcoming_shows_count': 0}
+
+
+
   data3={
     "id": 6,
     "name": "The Wild Sax Band",
@@ -462,7 +576,7 @@ def show_artist(artist_id):
     "upcoming_shows_count": 3,
   }
   #data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
-  return render_template('pages/show_artist.html', artist=artist_info)
+  return render_template('pages/show_artist.html', artist=artist_data)
 
 #  Update
 #  ----------------------------------------------------------------
@@ -548,9 +662,9 @@ def edit_artist_submission(artist_id):
   artist_to_edit.state = state
   artist_to_edit.phone = phone
   artist_to_edit.genres = genres
-  artist_to_edit.name = image_link
-  artist_to_edit.city = facebook_link
-  artist_to_edit.phone = seeking_description
+  artist_to_edit.image_link = image_link
+  artist_to_edit.facebook_link = facebook_link
+  artist_to_edit.seeking_description = seeking_description
 
 
   db.session.commit()
@@ -602,7 +716,7 @@ def edit_venue_submission(venue_id):
   venue_to_edit = Venue.query.get(venue_id)
 
   name = request.form.get('name', '')
-  print(name)
+
   city = request.form.get('city', '')
   state = request.form.get('state', '')
   phone = request.form.get('phone', '')
@@ -691,43 +805,23 @@ def shows():
   # displays list of shows at /shows
   # TODO: replace with real venues data.
   #       num_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "venue_id": 1,
-    "venue_name": "The Musical Hop",
-    "artist_id": 4,
-    "artist_name": "Guns N Petals",
-    "artist_image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
-    "start_time": "2019-05-21T21:30:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 5,
-    "artist_name": "Matt Quevedo",
-    "artist_image_link": "https://images.unsplash.com/photo-1495223153807-b916f75de8c5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=334&q=80",
-    "start_time": "2019-06-15T23:00:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    "start_time": "2035-04-01T20:00:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    "start_time": "2035-04-08T20:00:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    "start_time": "2035-04-15T20:00:00.000Z"
-  }]
-  return render_template('pages/shows.html', shows=data)
+  all_shows = Show.query.all()
+
+
+  show_data = []
+  for show in all_shows:
+    venue = Venue.query.filter_by(id=show.venue_id).first()
+    artist = Artist.query.filter_by(id=show.artist_id).first()
+    show_data.append({
+    "venue_id": show.venue_id,
+    "venue_name": venue.name,
+    "artist_id": show.artist_id,
+    "artist_name": artist.name,
+    "artist_image_link": artist.image_link,
+    "start_time": str(show.start_time)
+    })
+
+  return render_template('pages/shows.html', shows=show_data)
 
 @app.route('/shows/create')
 def create_shows():
@@ -749,10 +843,6 @@ def create_show_submission():
 
   db.session.commit()
   db.session.close()
-
-
-
-
 
 
 
