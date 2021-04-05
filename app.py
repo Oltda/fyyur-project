@@ -45,6 +45,7 @@ class Venue(db.Model):
     address = db.Column(db.String(120))
     phone = db.Column(db.String(120))
     genres = db.Column(db.ARRAY(db.String()))
+    website_link = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     seeking_talent = db.Column(db.Boolean, default=False, nullable=False)
@@ -197,39 +198,74 @@ def search_venues():
       #print(i.name)
   response['count'] = len(response['data'])
 
-
-
-  # response={
-  #   "count": 1,
-  #   "data": [{
-  #     "id": 2,
-  #     "name": "The Dueling Pianos Bar",
-  #     "num_upcoming_shows": 0,
-  #   }]
-  # }
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
+
+
+
+
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
 
 
+  venue = Venue.query.filter_by(id=venue_id).first()
 
-  venues = Venue.query.filter_by(id=venue_id).all()
-
-
-  venue_info = venues[0]
-
-  string_genres = "".join(venue_info.genres)
+  string_genres = "".join(venue.genres)
   string_genres = string_genres[1:-1]
 
-  venue_info.genres = string_genres.split(",")
+  venue.genres = string_genres.split(",")
 
+
+
+  all_the_shows = Show.query.filter_by(venue_id=venue_id).all()
+
+  past_shows = []
+  upcoming_shows = []
+
+  for gig in all_the_shows:
+
+    show_date = gig.start_time
+    today = datetime.datetime.now()
+
+    if show_date.date() < today.date():
+      info_past = {'venue_id': gig.venue_id, 'venue_name': Venue.query.get(gig.venue_id).name,
+                   'venue_image_link': Venue.query.get(gig.venue_id).image_link,
+                   'start_time': str(show_date)}
+      past_shows.append(info_past)
+
+    elif show_date.date() > today.date():
+
+      info_future = {'venue_id': gig.venue_id, 'venue_name': Venue.query.get(gig.venue_id).name,
+                   'venue_image_link': Venue.query.get(gig.venue_id).image_link,
+                   'start_time': str(show_date)}
+      upcoming_shows.append(info_future)
+
+    elif show_date.date() == today.date():
+      print("the show is today")
+
+  venue_data = {
+    "id": venue.id,
+    "name": venue.name,
+    "genres": venue.genres,
+    "city": venue.city,
+    "state": venue.state,
+    "phone": venue.phone,
+    "website_link": venue.website_link,
+    "facebook_link": venue.facebook_link,
+    "seeking_talent": venue.seeking_talent,
+    "seeking_description": venue.seeking_description,
+    "image_link": venue.image_link,
+    "past_shows": past_shows,
+    "upcoming_shows": upcoming_shows,
+    "past_shows_count": len(past_shows),
+    "upcoming_shows_count": len(upcoming_shows),
+  }
 
 
 
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
-  return render_template('pages/show_venue.html', venue=venue_info)
+  return render_template('pages/show_venue.html', venue=venue_data)
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -255,6 +291,7 @@ def create_venue_submission():
     facebook_link = request.form.get('facebook_link', '')
     seeking_talent = request.form.get('seeking_talent', '')
     seeking_description = request.form.get('seeking_description', '')
+    website_link = request.form.get('website_link', '')
 
     if seeking_talent == "y":
       seeking_talent = True
@@ -266,7 +303,7 @@ def create_venue_submission():
     venue = Venue(name=name, city=city, state=state, address=address,
                     phone=phone, image_link=image_link, genres=genres,
                     facebook_link=facebook_link, seeking_talent=seeking_talent,
-                    seeking_description=seeking_description)
+                    seeking_description=seeking_description, website_link=website_link)
 
 
 
@@ -409,17 +446,9 @@ def show_artist(artist_id):
                    'venue_image_link': Venue.query.get(gig.venue_id).image_link,
                    'start_time': str(show_date)}
       past_shows.append(info_past)
-      #print("show is in the past")
-      #past_shows['venue_id'] = gig.venue_id
-      # past_shows['venue_name'] = Venue.query.get(gig.venue_id).name
-      # past_shows['venue_image_link'] = Venue.query.get(gig.venue_id).image_link
-      # past_shows['start_time'] = str(show_date)
+
     elif show_date.date() > today.date():
-      #print("the show is in the future")
-      # upcoming_shows['venue_id'] = gig.venue_id
-      # upcoming_shows['venue_name'] = Venue.query.get(gig.venue_id).name
-      # upcoming_shows['venue_image_link'] = Venue.query.get(gig.venue_id).image_link
-      # upcoming_shows['start_time'] = str(show_date)
+
       info_future = {'venue_id': gig.venue_id, 'venue_name': Venue.query.get(gig.venue_id).name,
                    'venue_image_link': Venue.query.get(gig.venue_id).image_link,
                    'start_time': str(show_date)}
@@ -428,10 +457,6 @@ def show_artist(artist_id):
     elif show_date.date() == today.date():
       print("the show is today")
 
-
-
-
-
   artist_data = {
     "id": artist.id,
     "name": artist.name,
@@ -439,7 +464,7 @@ def show_artist(artist_id):
     "city": artist.city,
     "state": artist.state,
     "phone": artist.phone,
-    "website": "DODELAT column NENI V DATABAZI migrace",
+    "website_link": artist.website_link,
     "facebook_link": artist.facebook_link,
     "seeking_venue": artist.seeking_venue,
     "seeking_description": artist.seeking_description,
@@ -450,27 +475,8 @@ def show_artist(artist_id):
     "upcoming_shows_count": len(upcoming_shows),
   }
 
-  print(artist_data)
 
-  all_the_shows = Show.query.filter_by(artist_id=artist_id).all()
 
-  # for gig in all_the_shows:
-  #
-  #   print("venue id", gig.venue_id)
-  #   print("venue image link", Venue.query.get(gig.venue_id).image_link)
-  #   print("venue name", Venue.query.get(gig.venue_id).name)
-  #
-  #   print("start time", gig.start_time)
-  #   show_date = gig.start_time
-  #
-  #   x = datetime.datetime.now()
-  #
-  #   if show_date.date() < x.date():
-  #     print("show is in the past")
-  #   elif show_date.date() > x.date():
-  #     print("the show is in the future")
-  #   elif show_date.date() == x.date():
-  #     print("the show is today")
 
   data1={
     "id": 4,
@@ -590,7 +596,7 @@ def edit_artist(artist_id):
   form.phone.data = artist_to_edit.phone
   form.image_link.data = artist_to_edit.image_link
   form.facebook_link.data = artist_to_edit.facebook_link
-
+  form.website_link.data = artist_to_edit.website_link
   form.seeking_description.data = artist_to_edit.seeking_description
 
   form.seeking_venue.data = artist_to_edit.seeking_venue
@@ -646,6 +652,7 @@ def edit_artist_submission(artist_id):
   genres = request.form.getlist('genres')
   image_link = request.form.get('image_link', '')
   facebook_link = request.form.get('facebook_link', '')
+  website_link = request.form.get('website_link', '')
   seeking_venue = request.form.get('seeking_venue', '')
   seeking_description = request.form.get('seeking_description', '')
 
@@ -664,6 +671,7 @@ def edit_artist_submission(artist_id):
   artist_to_edit.image_link = image_link
   artist_to_edit.facebook_link = facebook_link
   artist_to_edit.seeking_description = seeking_description
+  artist_to_edit.website_link = website_link
 
 
   db.session.commit()
@@ -683,7 +691,7 @@ def edit_venue(venue_id):
   form.address.data = venue_to_edit.address
   form.image_link.data = venue_to_edit.image_link
   form.facebook_link.data = venue_to_edit.facebook_link
-
+  form.website_link.data = venue_to_edit.website_link
   form.seeking_description.data = venue_to_edit.seeking_description
 
   form.seeking_talent.data = venue_to_edit.seeking_talent
@@ -719,7 +727,7 @@ def edit_venue_submission(venue_id):
   city = request.form.get('city', '')
   state = request.form.get('state', '')
   phone = request.form.get('phone', '')
-
+  website_link = request.form.get('website_link', '')
   address = request.form.get('address', '')
   genres = request.form.getlist('genres')
   image_link = request.form.get('image_link', '')
@@ -738,9 +746,10 @@ def edit_venue_submission(venue_id):
   venue_to_edit.phone = phone
   venue_to_edit.genres = genres
   venue_to_edit.image_link = image_link
-  venue_to_edit.city = facebook_link
-  venue_to_edit.phone = seeking_description
+  venue_to_edit.facebook_link = facebook_link
+  venue_to_edit.seeking_description = seeking_description
   venue_to_edit.address = address
+  venue_to_edit.website_link = website_link
 
   db.session.commit()
   db.session.close()
@@ -772,6 +781,7 @@ def create_artist_submission():
   facebook_link = request.form.get('facebook_link', '')
   seeking_venue = request.form.get('seeking_venue', '')
   seeking_description = request.form.get('seeking_description', '')
+  website_link = request.form.get('website_link', '')
 
 
 
@@ -783,7 +793,7 @@ def create_artist_submission():
 
   artist = Artist(name=name, city=city, state=state,
                   phone=phone, genres=genres, image_link=image_link,
-                  facebook_link=facebook_link,
+                  facebook_link=facebook_link, website_link=website_link,
                   seeking_description=seeking_description, seeking_venue=seeking_venue)
   db.session.add(artist)
   db.session.commit()
